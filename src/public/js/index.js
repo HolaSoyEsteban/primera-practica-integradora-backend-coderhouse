@@ -64,7 +64,7 @@ socket.on('updatedProducts', data => {
         for (product of data) {
             let tr = document.createElement('tr')
             tr.innerHTML=
-                `<td><button onclick="deleteProduct(${product.id})">Eliminar</button></td>
+                `<td><button onclick="deleteProduct(${product._id})">Eliminar</button></td>
                 <td>${product.title}</td>
                 <td>${product.description}</td>
                 <td>${product.price}</td>

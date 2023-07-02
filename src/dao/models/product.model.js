@@ -13,7 +13,7 @@ const productSchema = new mongoose.Schema({
     thumbnail: { type: [String], default: [] },
 });
 
-moongose.set('strictQuery', false)
+mongoose.set('strictQuery', false)
 const productModel = mongoose.model('products', productSchema);
 
 export default productModel

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import fs from 'fs';
+import Product from '../dao/models/product.model.js';
 
 const router = Router();
 
@@ -9,8 +10,8 @@ router.get('/', async (req, res) => {
   console.log('¡Solicitud recibida!');
   const limit = req.query.limit;
   try {
-    const data = await fs.promises.readFile(filePathProducts, 'utf-8');
-    const products = JSON.parse(data);
+    const products = await Product.find().limit(limit).lean().exec();
+    //const products = JSON.parse(data);
     if (!limit) {
       res.status(200).json({ products });
     } else {
@@ -26,65 +27,27 @@ router.get('/', async (req, res) => {
 router.get('/:pid', async (req, res) => {
   const id = req.params.pid;
   try {
-    const data = await fs.promises.readFile(filePathProducts, 'utf-8');
-    const products = JSON.parse(data);
-    const product = products.find((product) => product.id == id);
+    const product = await Product.findById(id).lean().exec();
     if (product) {
       res.status(200).json(product);
     } else {
       res.status(404).json({ error: 'Producto no encontrado' });
     }
   } catch (error) {
-    console.log('Error al leer el archivo:', error);
-    res.status(500).json({ error: 'Error al leer el archivo' });
+    console.log('Error al leer el producto:', error);
+    res.status(500).json({ error: 'Error al leer el producto' });
   }
 });
 
 router.post('/', async (req, res) => {
   try {
-    const { title, description, code, price, stock, category, thumbnails } = req.body;
-  
-    // Validar que se proporcionen los campos obligatorios
-    if (!title || !description || !code || !price || !stock || !category) {
-      res.status(400).json({ error: 'Faltan campos obligatorios' });
-      return;
-    }
-  
-    const data = await fs.promises.readFile(filePathProducts, 'utf-8');
-    const products = JSON.parse(data);
-  
-    // Verificar si el producto ya existe por el código
-    const existingProduct = products.find((product) => product.code === code);
-    if (existingProduct) {
-      res.status(400).json({ error: 'El producto ya existe' });
-      return;
-    }
-  
-    // Generar un nuevo ID
-    const newProductId = products.length === 0 ? 1 : products[products.length - 1].id + 1;
-  
-    const newProduct = {
-      id: newProductId,
-      title,
-      description,
-      code,
-      price,
-      status: true,
-      stock,
-      category,
-      thumbnails: Array.isArray(thumbnails) ? thumbnails : [thumbnails].filter(Boolean), // Se asigna el array de thumbnails o se crea un array con el valor único (eliminando valores nulos)
-    };
-  
-    products.push(newProduct);
-  
-    await fs.promises.writeFile(filePathProducts, JSON.stringify(products, null, 2)); // Escribe el archivo con la lista de productos actualizada
-    
-    req.io.emit('updatedProducts', products) // emite el evento updatedProducts con la lista de productos
-
-    res.status(201).json(newProduct);
+    const product = req.body
+    const result = await Product.create(product);
+    const products = await Product.find().lean().exec();
+    req.io.emit('productList', products); // emite el evento updatedProducts con la lista de productos
+    res.status(201).json({ status: 'success', payload: result });
   } catch (error) {
-    console.log('Error al leer/escribir el archivo:', error);
-    res.status(500).json({ error: 'Error en el servidor' });
+    res.status(500).json({ status: 'error', error: error.message });
   }
 });
 
@@ -93,52 +56,45 @@ router.put('/:pid', async (req, res) => {
     const productId = req.params.pid;
     const updatedFields = req.body;
 
-    const data = await fs.promises.readFile(filePathProducts, 'utf-8');
-    const products = JSON.parse(data);
+    const updatedProduct = await Product.findByIdAndUpdate(productId, updatedFields, {
+      new: true // Para devolver el documento actualizado
+    }).lean().exec();
 
-    const productIndex = products.findIndex((product) => product.id == productId);
-
-    if (productIndex === -1) {
+    if (!updatedProduct) {
       res.status(404).json({ error: 'Producto no encontrado' });
       return;
     }
 
-    // Remover el campo "id" del objeto de campos actualizados si está presente
-    delete updatedFields.id;
+    const products = await Product.find().lean().exec();
 
-    const updatedProduct = { ...products[productIndex], ...updatedFields };
-    products[productIndex] = updatedProduct;
-
-    await fs.promises.writeFile(filePathProducts, JSON.stringify(products, null, 2));
-
-    req.io.emit('updatedProducts', products) // emite el evento updatedProducts con la lista de productos
+    req.io.emit('productList', products);
 
     res.status(200).json(updatedProduct);
   } catch (error) {
-    console.log('Error al leer/escribir el archivo:', error);
+    console.log('Error al actualizar el producto:', error);
     res.status(500).json({ error: 'Error en el servidor' });
   }
 });
 
 router.delete('/:pid', async (req, res) => {
-  const id = await req.params.pid;
   try {
-    const data = await fs.promises.readFile(filePathProducts, 'utf-8');
-    const products = JSON.parse(data);
-    const productIndex = products.findIndex((product) => product.id == id);
-    if (productIndex != -1) {
-      products.splice(productIndex, 1);
-      await fs.promises.writeFile(filePathProducts,JSON.stringify(products, null, 2));
+    const productId = req.params.pid;
 
-      req.io.emit('updatedProducts', products) // emite el evento updatedProducts con la lista de productos
+    const deletedProduct = await Product.findByIdAndDelete(productId).lean().exec();
 
-      res.status(204).json({ message: 'Producto eliminado' });
-    } else {
+    if (!deletedProduct) {
       res.status(404).json({ error: 'Producto no encontrado' });
+      return;
     }
+
+    const products = await Product.find().lean().exec();
+
+    req.io.emit('productList', products);
+
+    res.status(200).json({ message: 'Producto eliminado' });
   } catch (error) {
-    console.log('Error al leer el archivo:', error);
-    res.status(500).json({ error: 'Error al leer el archivo' });
+    console.log('Error al eliminar el producto:', error);
+    res.status(500).json({ error: 'Error en el servidor' });
   }
 });
 

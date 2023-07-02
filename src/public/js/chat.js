@@ -28,9 +28,6 @@ Swal.fire({
             alert('Un nuevo usuario se ha conectado!');
         });
     
-        // Cargar los mensajes almacenados en la base de datos
-        socket.emit('loadMessages'); // Emitir evento para cargar mensajes
-    
         chatBox.addEventListener('keyup', event => {
             if (event.key === 'Enter') {
                 if (chatBox.value.trim().length > 0) {

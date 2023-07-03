@@ -77,7 +77,7 @@ try {
             });
         });
 
-        socket.on('productList', data => { 
+        socket.on('productList', async (data) => { 
             io.emit('updatedProducts', data ) // emite el evento productList con la lista de productos actualizada
         }) // evento que se ejecuta cuando se actualiza la lista de productos
     }) // evento que se ejecuta cuando un cliente se conecta

@@ -1,4 +1,4 @@
-const socket = io() // instancia de socket.io en el cliente
+let socket = io() // instancia de socket.io en el cliente
 const table = document.getElementById('realProductsTable') // referencia a la tabla de productos
 
 document.getElementById('createBtn').addEventListener('click', () => {
@@ -25,7 +25,7 @@ document.getElementById('createBtn').addEventListener('click', () => {
     .then(result => result.json()) // parsea el resultado a JSON
     .then(result => {
         if (result.status === 'error') throw new Error(result.error)
-        else socket.emit('productList', result.payload) // si no hubo error, emite el evento productList con la lista de productos
+        else socket.emit('productList', result.products) // si no hubo error, emite el evento productList con la lista de productos
         alert('Producto creado con éxito!')
         document.getElementById('title').value = '' // limpia los campos del formulario
         document.getElementById('description').value = ''
@@ -38,39 +38,40 @@ document.getElementById('createBtn').addEventListener('click', () => {
 })
 
 deleteProduct = (id) => {
+    console.log(id);
     fetch(`/api/products/${id}`, {
-        method: 'DELETE', // método HTTP
-    }) // fetch para eliminar un producto
-        .then(result => result.json()) // parsea el resultado a JSON
-        .then(result => {
-            if (result.status === 'error') throw new Error(result.error)
-            else socket.emit('productList', result.payload) // si no hubo error, emite el evento productList con la lista de productos
-            alert('Producto eliminado con éxito!')
-        })
-        .catch(error => alert(`Ocurrio un error : ${error}`)) // si hubo un error, muestra un alert con el error
-}
+      method: 'DELETE',
+    })
+      .then((result) => {
+        if (result.ok) {
+          alert('Producto eliminado con éxito!');
+        } else {
+          throw new Error('Error al eliminar el producto');
+        }
+      })
+      .then(() => fetch('/api/products'))
+      .then((result) => result.json())
+      .then((result) => {
+        if (result.status === 'error') throw new Error(result.error);
+        else socket.emit('productList', result.products);
+      })
+      .catch((error) => alert(`Ocurrió un error: ${error}`));
+  };
 
 socket.on('updatedProducts', data => {
-    table.innerHTML =
-        `<tr>
-            <td></td>
-            <td>Producto</td>
-            <td>Descripción</td>
-            <td>Precio</td>
-            <td>Código</td>
-            <td>Stock</td>
-            <td>Categoría</td>
-        </tr>`;
-        for (product of data) {
-            let tr = document.createElement('tr')
-            tr.innerHTML=
-                `<td><button onclick="deleteProduct(${product._id})">Eliminar</button></td>
-                <td>${product.title}</td>
-                <td>${product.description}</td>
-                <td>${product.price}</td>
-                <td>${product.code}</td>
-                <td>${product.stock}</td>
-                <td>${product.category}</td>`;
-            table.getElementsByTagName('tbody')[0].appendChild(tr); // agrega el elemento a la tabla
-        }
-})
+    console.log(data)
+    const tbody = table.getElementsByTagName('tbody')[0];
+    tbody.innerHTML = ''; // Eliminar los elementos antiguos de la tabla
+
+    for (const product of data) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><button onclick="deleteProduct('${product._id}')">Eliminar</button></td>
+            <td>${product.title}</td>
+            <td>${product.description}</td>
+            <td>${product.price}</td>
+            <td>${product.code}</td>
+            <td>${product.stock}</td>
+            <td>${product.category}</td>`;
+        tbody.appendChild(tr);
+    }
+});

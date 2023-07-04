@@ -10,7 +10,6 @@ import Message from './dao/models/message.model.js'
 
 const PORT = 8080; // puerto en el que va a escuchar el servidor
 
-
 const app = express(); // crea una instancia de una aplicación de express
 app.use(express.json()); // middleware para parsear el body de las requests a JSON
 app.use(express.static('./src/public')); // middleware para servir archivos estáticos

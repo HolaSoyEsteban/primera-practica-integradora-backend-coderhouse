@@ -40,6 +40,7 @@ try {
     app.use('/products', viewsRouter); // ruta para renderizar la vista de productos
     app.use('/api/products', productsRouter); // registra el router de productos en la ruta /api/products
     app.use('/api/carts', cartsRouter); // registra el router de carritos en la ruta /api/carts
+    
     io.on('connection', socket => {
         console.log('Nuevo cliente conectado!')
 
@@ -78,7 +79,7 @@ try {
         });
 
         socket.on('productList', async (data) => { 
-            io.emit('updatedProducts', data ) // emite el evento productList con la lista de productos actualizada
+            io.emit('updatedProducts', data ) // emite el evento updatedProducts con la lista de productos
         }) // evento que se ejecuta cuando se actualiza la lista de productos
     }) // evento que se ejecuta cuando un cliente se conecta
 } catch (error) {

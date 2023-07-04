@@ -8,7 +8,7 @@ const filePathProducts = './src/productos.json';
 
 router.get('/', async (req, res) => {
   console.log('¡Solicitud recibida!');
-  const limit = req.query.limit;
+  const limit = req.query.limit || 0
   try {
     const products = await Product.find().limit(limit).lean().exec();
     //const products = JSON.parse(data);
